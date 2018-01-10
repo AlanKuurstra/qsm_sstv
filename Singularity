@@ -10,8 +10,7 @@ From: ubuntu:xenial
 #########
 #copy SS_TV matlab scripts
 mkdir -p ${SINGULARITY_ROOTFS}/code/matlab_scripts
-pwd
-ls
+
 cp matlab_scripts/SS_TV_script ${SINGULARITY_ROOTFS}/code/matlab_scripts/SS_TV_script
 cp matlab_scripts/run_SS_TV_script.sh ${SINGULARITY_ROOTFS}/code/matlab_scripts/run_SS_TV_script.sh
 
