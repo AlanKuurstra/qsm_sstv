@@ -8,8 +8,6 @@ From: ubuntu:xenial
 #########
 %setup
 #########
-cp ./install_scripts/*.sh $SINGULARITY_ROOTFS
-
 #copy SS_TV matlab scripts
 mkdir -p ${SINGULARITY_ROOTFS}/code/matlab_scripts
 cp ./matlab_scripts/SS_TV_script ${SINGULARITY_ROOTFS}/code/matlab_scripts/SS_TV_script
