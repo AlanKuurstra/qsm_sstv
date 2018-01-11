@@ -20,10 +20,10 @@ from scipy.optimize import curve_fit,leastsq
 from nipype.interfaces.utility import Function
 
 matlab_scripts_loc=os.path.dirname(os.path.realpath(__file__))+"/matlab_scripts"
-mcr_location='/usr/local/MATLAB/R2016b/' #local testing
-r2_script_location='/storage/akuurstr/singularity_testing/full/CalcR2Star.py' #local testing
-#mcr_location='/opt/mcr/v91'
-#r2_script_location='/code/calcR2star.py'
+#mcr_location='/usr/local/MATLAB/R2016b/' #local testing
+#r2_script_location='/storage/akuurstr/singularity_testing/full/CalcR2Star.py' #local testing
+mcr_location='/opt/mcr/v91'
+r2_script_location='/code/calcR2star.py'
 
 #==============================================================================
 #SiemensPhasePreprocess interface is for converting siemens dicom to radians
