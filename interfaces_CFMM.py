@@ -23,7 +23,7 @@ matlab_scripts_loc=os.path.dirname(os.path.realpath(__file__))+"/matlab_scripts"
 #mcr_location='/usr/local/MATLAB/R2016b/' #local testing
 #r2_script_location='/storage/akuurstr/singularity_testing/full/CalcR2Star.py' #local testing
 mcr_location='/opt/mcr/v91'
-r2_script_location='/code/CalcR2star.py'
+r2_script_location='/code/CalcR2Star.py'
 
 #==============================================================================
 #SiemensPhasePreprocess interface is for converting siemens dicom to radians
