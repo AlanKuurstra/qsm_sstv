@@ -16,6 +16,10 @@ if __name__ == "__main__":
                         'should be stored. If you are running group level analysis '
                         'this folder should be prepopulated with the results of the'
                         'participant level analysis.')
+    parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
+                        'Multiple participant level analyses can be run independently '
+                        '(in parallel) using the same output_dir.',
+                        choices=['participant', 'group'])
     parser.add_argument('--mag_match_pattern', dest="mag_match_pattern",
                         default='*part-mag*',
                         help='Pattern used to match magnitude images and json files in anat folder (leave extension out of pattern). The pattern may contain simple shell-style wildcards a la fnmatch. However, unlike fnmatch, filenames starting with a dot are special cases that are not matched by \'*\' and \'?\' patterns. Example usage: *part-mag*')  
