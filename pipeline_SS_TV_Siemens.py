@@ -42,6 +42,12 @@ def create_pipeline_SS_TV(  bids_dir,
                             scnd_diff_reliability_thresh_trim,
                             scnd_diff_reliability_thresh_noise):
     layout=BIDSLayout(bids_dir)
+    
+    #find files that don't have the rec attribute specified
+    #maybe have an unspecified option.
+    #tmp=layout.get(modality='anat',type='GRE',subject='C031',part="phase")
+    #set(tmp)-set([x for x in tmp if hasattr(x,'rec')])
+    
     #can we do this more elegantly?
     first_echo_files=[]    
     for subject in subjects:

@@ -66,7 +66,7 @@ if __name__ == "__main__":
                         default=15.0,
                         help="Size of local snr window, needed for weights in frequency fitting.")
     parser.add_argument("--truncate_echo", dest="truncate_echo",
-                        default=-1,
+                        default=None,
                         help="How many echoes to include. Use -1 for all echoes")
     parser.add_argument("--SS_TV_lagrange_parameter", dest="SS_TV_lagrange_parameter",
                         default=0.35,
