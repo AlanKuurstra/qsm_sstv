@@ -4,6 +4,13 @@
 Created on Tue Sep  5 11:07:39 2017
 
 @author: akuurstr
+
+-in custom python nodes, using nibabel to open niftis and always copy the input
+ affine matrix to the output nifti.
+-in matlab nodes, using load_untouch_nii to load data without applying
+ affine transformations. output nifti is saved using input's header
+-user is expected to provide which dimension the nifti file stores the 
+ B0 direction
 """
 import numpy as np
 from nipype.interfaces import utility as niu
@@ -12,17 +19,10 @@ import nipype.interfaces.io as nio
 import nipype.interfaces.fsl as fsl
 from interfaces_CFMM import GetAvgAndWeightsFromMag,CalculatReliabilityMask,\
 TrimMaskUsingReliability,EstimateFrequncyFromWrappedPhase,GetCFFromJson,SS_TV,SS_TV_mcr,\
-CalcR2Star,CalcR2Star_cmd,SiemensPhasePreprocess
+CalcR2Star,CalcR2Star_cmd,SiemensPhasePreprocess,replace_slash
 from nipype.interfaces.utility import Function
 from bids.grabbids import BIDSLayout
 import os
-
-def replace_slash_fn(filename):  
-        renamed="_".join(str(filename).split("/"))            
-        return renamed
-replace_slash = Function(input_names=["filename"],
-                             output_names=["renamed"],
-                             function=replace_slash_fn)
 
 def create_pipeline_SS_TV(  bids_dir,
                             work_dir,
@@ -39,15 +39,11 @@ def create_pipeline_SS_TV(  bids_dir,
                             freq_weights__snr_window_sz,
                             truncate_echo,
                             SS_TV_lagrange_parameter,
+                            B0_dir,
                             scnd_diff_reliability_thresh_trim,
                             scnd_diff_reliability_thresh_noise):
     layout=BIDSLayout(bids_dir)
-    
-    #find files that don't have the rec attribute specified
-    #maybe have an unspecified option.
-    #tmp=layout.get(modality='anat',type='GRE',subject='C031',part="phase")
-    #set(tmp)-set([x for x in tmp if hasattr(x,'rec')])
-    
+        
     #can we do this more elegantly?
     first_echo_files=[]    
     for subject in subjects:
@@ -88,8 +84,8 @@ def create_pipeline_SS_TV(  bids_dir,
     
     avg_and_freq_estimate_weights=pe.Node(GetAvgAndWeightsFromMag(),name='avg_and_freq_estimate_weights')
     avg_and_freq_estimate_weights.inputs.snr_window_sz=freq_weights__snr_window_sz
-    avg_and_freq_estimate_weights.inputs.avg_out_filename="avg.nii"
-    avg_and_freq_estimate_weights.inputs.weight_out_filename="weights.nii"          
+    avg_and_freq_estimate_weights.inputs.avg_out_filename="avg.nii.gz"
+    avg_and_freq_estimate_weights.inputs.weight_out_filename="weights.nii.gz"          
     
     """
     #spm worked better for varian 7T data
@@ -121,33 +117,34 @@ def create_pipeline_SS_TV(  bids_dir,
     
     freq_est=pe.Node(EstimateFrequncyFromWrappedPhase(),'freq_est')
     freq_est.inputs.truncate_echo = truncate_echo
-    freq_est.inputs.freq_filename = "freq_est.nii"
+    freq_est.inputs.freq_filename = "freq_est.nii.gz"
     freq_est.interface.estimated_memory_gb = 4
     
     R2Star=pe.Node(CalcR2Star_cmd(),'R2Star')
-    R2Star.inputs.R2star='R2star.nii'
-    R2Star.inputs.neg_mask='negMask.nii'
-    R2Star.inputs.nan_mask='nanMask.nii'
+    R2Star.inputs.R2star='R2star.nii.gz'
+    R2Star.inputs.neg_mask='negMask.nii.gz'
+    R2Star.inputs.nan_mask='nanMask.nii.gz'
     #R2Star.interface.estimated_memory_gb = 5
     
     trim_mask=pe.Node(TrimMaskUsingReliability(),name='trim_mask')
     trim_mask.inputs.erosion_sz = 15.0 #in mm
     trim_mask.inputs.threshold = scnd_diff_reliability_thresh_trim
-    trim_mask.inputs.trimmed_mask_filename = "trim_mask.nii"
-    trim_mask.inputs.reliability_filename="unreliableMap.nii"
+    trim_mask.inputs.trimmed_mask_filename = "trim_mask.nii.gz"
+    trim_mask.inputs.reliability_filename="unreliableMap.nii.gz"
     trim_mask.interface.estimated_memory_gb = 25
     
     unreliable_fieldmap_voxels=pe.Node(CalculatReliabilityMask(),name='unreliable_fieldmap_voxels')
     unreliable_fieldmap_voxels.inputs.threshold=scnd_diff_reliability_thresh_noise
-    unreliable_fieldmap_voxels.inputs.reliability_mask_filename="unreliableMask.nii" 
-    unreliable_fieldmap_voxels.inputs.reliability_filename="unreliableMap.nii"
+    unreliable_fieldmap_voxels.inputs.reliability_mask_filename="unreliableMask.nii.gz" 
+    unreliable_fieldmap_voxels.inputs.reliability_filename="unreliableMap.nii.gz"
     
     CF_value=pe.Node(GetCFFromJson,name='CFValue')   
             
     susceptibility=pe.Node(SS_TV_mcr(),name='susceptibility')
     susceptibility.inputs.quit_matlab='' #use this line when using mcr, comment when using matlab
     susceptibility.inputs.alpha=SS_TV_lagrange_parameter
-    susceptibility.inputs.susceptibility_filename='susceptibilityMap.nii'
+    susceptibility.inputs.B0_dir=B0_dir
+    susceptibility.inputs.susceptibility_filename='susceptibilityMap.nii.gz'
     susceptibility.interface.estimated_memory_gb = 10
     
     fieldmap_reorient=pe.Node(fsl.Reorient2Std(),name='fieldmap_reorient')    
@@ -156,18 +153,10 @@ def create_pipeline_SS_TV(  bids_dir,
     QSM_noise_mask_reorient=pe.Node(fsl.Reorient2Std(),name='QSM_noise_mask_reorient')
     R2star_reorient=pe.Node(fsl.Reorient2Std(),name='R2star_reorient')
     R2star_fit_reorient=pe.Node(fsl.Reorient2Std(),name='R2star_fit_reorient')
-    R2star_neg_mask_reorient=pe.Node(fsl.Reorient2Std(),name='R2star_neg_mask_reorient')
-    
-    fieldmap_reorient.inputs.output_type='NIFTI'
-    QSM_reorient.inputs.output_type='NIFTI'
-    QSM_brain_mask_reorient.inputs.output_type='NIFTI'
-    QSM_noise_mask_reorient.inputs.output_type='NIFTI'
-    R2star_reorient.inputs.output_type='NIFTI'
-    R2star_fit_reorient.inputs.output_type='NIFTI'
-    R2star_neg_mask_reorient.inputs.output_type='NIFTI'
+    R2star_neg_mask_reorient=pe.Node(fsl.Reorient2Std(),name='R2star_neg_mask_reorient')   
     
     datasink = pe.Node(nio.DataSink(), name="datasink")    
-    datasink.inputs.base_directory = out_dir +'/derivatives/qsm/'
+    datasink.inputs.base_directory = out_dir +'/qsm_sstv/'
     datasink.inputs.parameterization=False    
     
     rename_infosource=pe.Node(replace_slash, "rename_infosource")
@@ -186,15 +175,10 @@ def create_pipeline_SS_TV(  bids_dir,
     wf.base_dir=pipelineDir
     wf.config['execution']['remove_unnecessary_outputs']=False #useful for debugging
     wf.connect([
-            (infosource, datasource, [('subject_id', 'subject_id')]),
-            #reorient should happen at the end, the direction of z matters
-            #(datasource, suscMagReorient, [('magImages', 'in_file')]),        
-            #(datasource, suscPhaseReorient, [('phaseImages', 'in_file')]),            
-            #(suscMagReorient, avg_and_freq_estimate_weights, [('out_file', 'mag')]),            
-            #(suscPhaseReorient, susc_phase_preprocess, [('out_file', 'infiles')]),
+            (infosource, datasource, [('subject_id', 'subject_id')]),            
             (datasource, avg_and_freq_estimate_weights, [('mag_images', 'mag')]),            
             (datasource, susc_phase_preprocess, [('phase_images', 'infiles')]),
-            #spm requires matlab, just use fsl fast
+            #spm requires matlab
             #(avg_and_freq_estimate_weights, nonuniformityCorrect_spm, [('avgOutFilename', 'data')]),        
             #(nonuniformityCorrect_spm, brain_extract, [('bias_corrected_image', 'in_file')]),
             (avg_and_freq_estimate_weights, nonuniformity_correct_fsl, [('avg_out_filename', 'in_files')]),        
@@ -203,23 +187,20 @@ def create_pipeline_SS_TV(  bids_dir,
             (datasource, freq_est, [('phase_jsons', 'json')]),
             (brain_extract, freq_est, [('mask_file', 'mask')]),
             (avg_and_freq_estimate_weights, freq_est, [('weight_out_filename', 'weight')]),            
-            (freq_est, trim_mask, [('freq_filename', 'phase')]),                        
-            #(suscMagReorient, R2Star, [('out_file', 'mag')]),
+            (freq_est, trim_mask, [('freq_filename', 'phase')]),                                    
             (datasource, R2Star, [('mag_images', 'mag')]),
             (susc_phase_preprocess, R2Star, [('outfiles', 'phase')]),
-            (freq_est, R2Star, [('freq_filename','freq_loc')]),
-            #(brain_extract, R2Star, [('mask_file','mask')]),
+            (freq_est, R2Star, [('freq_filename','freq_loc')]),            
             (trim_mask, R2Star, [('trimmed_mask_filename','mask')]),
             (datasource, R2Star, [('mag_jsons', 'json')]),        
             (brain_extract, trim_mask, [('mask_file', 'mask')]),
-            (freq_est, unreliable_fieldmap_voxels, [('freq_filename','phase')]),
-            #(trim_mask, unreliable_fieldmap_voxels, [('trimmedMaskFilename','mask')]),
+            (freq_est, unreliable_fieldmap_voxels, [('freq_filename','phase')]),            
             (brain_extract, unreliable_fieldmap_voxels, [('mask_file','mask')]),
             (freq_est, susceptibility, [('freq_filename','freq_loc')]), 
-            #(datasource, CFValue, [('magJsons','filename')]),
+            (datasource, CF_value, [('mag_jsons','filename')]),
             (unreliable_fieldmap_voxels, susceptibility, [('reliability_mask_filename','reliability_mask_loc')]),        
             (trim_mask, susceptibility, [('trimmed_mask_filename','mask_loc')]),            
-            #(CF_value, susceptibility, [('cf','CF')]),
+            (CF_value, susceptibility, [('cf','CF')]),
             
             (freq_est, fieldmap_reorient, [('freq_filename', 'in_file')]),
             (susceptibility, QSM_reorient, [('susceptibility_filename', 'in_file')]),
@@ -228,63 +209,38 @@ def create_pipeline_SS_TV(  bids_dir,
             (R2Star, R2star_reorient, [('R2star', 'in_file')]),
             (R2Star, R2star_fit_reorient, [('R2star_fit', 'in_file')]),
             (R2Star, R2star_neg_mask_reorient, [('neg_mask', 'in_file')]),
-                        
+                                    
             #rename files and data sink
             (infosource, rename_infosource, [('subject_id', 'filename')]),
             #fieldmap
             (rename_infosource, rename_fieldmap, [('renamed','subject_id')]),            
-            #(freq_est, rename_fieldmap, [('freqFilename', 'in_file')]),
             (fieldmap_reorient, rename_fieldmap, [('out_file', 'in_file')]),
             (rename_fieldmap, datasink, [('out_file', '@')]),
             #qsm
-            (rename_infosource, rename_QSM, [('renamed','subject_id')]),            
-            #(susceptibility, rename_QSM, [('SusceptibilityFilename', 'in_file')]),
+            (rename_infosource, rename_QSM, [('renamed','subject_id')]),                        
             (QSM_reorient, rename_QSM, [('out_file', 'in_file')]),
             (rename_QSM, datasink, [('out_file', '@.@qsm')]),
             #qsm brain mask
-            (rename_infosource, rename_QSM_brain_mask, [('renamed','subject_id')]),            
-            #(trim_mask, rename_QSM_brain_mask, [('trimmedMaskFilename', 'in_file')]),
+            (rename_infosource, rename_QSM_brain_mask, [('renamed','subject_id')]),                        
             (QSM_brain_mask_reorient, rename_QSM_brain_mask, [('out_file', 'in_file')]),
             (rename_QSM_brain_mask, datasink, [('out_file', '@.@qsm_brain')]),
             #qsm noisey voxels in fieldmap
             (rename_infosource, rename_QSM_noise_mask, [('renamed','subject_id')]),            
-            #(unreliable_fieldmap_voxels, rename_QSM_noise_mask, [('reliabilityMaskFilename', 'in_file')]),
             (QSM_noise_mask_reorient, rename_QSM_noise_mask, [('out_file', 'in_file')]),
             (rename_QSM_noise_mask, datasink, [('out_file', '@.@qsm_noise')]),
             #r2star
-            (rename_infosource, rename_R2star, [('renamed','subject_id')]),
-            #(R2Star, rename_R2star, [('R2star', 'in_file')]),
+            (rename_infosource, rename_R2star, [('renamed','subject_id')]),            
             (R2star_reorient, rename_R2star, [('out_file', 'in_file')]),
             (rename_R2star, datasink, [('out_file', '@.@r2star')]),   
             #r2star fit map
-            (rename_infosource, rename_R2star_fit, [('renamed','subject_id')]),
-            #(R2Star, rename_R2star_fit, [('R2star_fit', 'in_file')]),
+            (rename_infosource, rename_R2star_fit, [('renamed','subject_id')]),            
             (R2star_fit_reorient, rename_R2star_fit, [('out_file', 'in_file')]),
             (rename_R2star_fit, datasink, [('out_file', '@.@r2starfit')]), 
             #r2star negative values that were set to 0
-            (rename_infosource, rename_R2star_neg_mask, [('renamed','subject_id')]),
-            #(R2Star, rename_R2star_neg_mask, [('negMask', 'in_file')]),
+            (rename_infosource, rename_R2star_neg_mask, [('renamed','subject_id')]),            
             (R2star_neg_mask_reorient, rename_R2star_neg_mask, [('out_file', 'in_file')]),
             (rename_R2star_neg_mask, datasink, [('out_file', '@.@r2starneg')]),
                         
             (infosource, datasink, [('subject_id', 'container')]),         
             ])
     return wf
-
-if __name__ == "__main__":
-    #main is only for testing.  program is really started by run.py
-    #the following should be the same as run.py with args overwritten.
-    
-   
-    #for testing
-    BidsDir='/cfmm/data/akuurstr/tmp/ali_khan'
-    outDir='/cfmm/data/akuurstr/tmp/ali_khan/results'
-    args = parser.parse_args([BidsDir, outDir,'--participant_label','C011','--session_label','1','--SS_TV_lagrangeParameter','0.4','--truncateEcho','3','--keep_unnecessary_outputs'])    
-    
-   
-    
-    
-    
-    
-    
-          

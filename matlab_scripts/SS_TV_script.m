@@ -1,10 +1,10 @@
-function [chi_ss_tv_ppb]=SS_TV_script(freqLoc,maskLoc,reliabilityMaskLoc,CF,alpha,SuscFilename)
-    %addpath /home/akuurstr/Downloads/TGV_SS_QSM/SS_TGV_QSM_Toolbox
-    %addpath([dirname(mfilename('fullpath')),'/TGV_SS_QSM/SS_TGV_QSM_Toolbox']);
-    %addpath([dirname(mfilename('fullpath')),'/NIfTI_20140122']);
-    B0_dir=[0;0;1];    
+function [chi_ss_tv_ppb]=SS_TV_script(freqLoc,maskLoc,reliabilityMaskLoc,CF,alpha,B0_dir,SuscFilename)    
+    addpath([dirname(mfilename('fullpath')),'/TGV_SS_QSM/SS_TGV_QSM_Toolbox']);
+    addpath([dirname(mfilename('fullpath')),'/NIfTI_20140122']);
+   
     CF=str2double(CF);
     alpha=str2double(alpha);
+    B0_dir=str2double(B0_dir);
   
     %mask
     chi_mask_obj=load_untouch_nii(maskLoc);
@@ -16,7 +16,23 @@ function [chi_ss_tv_ppb]=SS_TV_script(freqLoc,maskLoc,reliabilityMaskLoc,CF,alph
 
     %fieldmap
     chi_total_obj=load_untouch_nii(freqLoc);
-    phase_total=double(chi_total_obj.img);    
+    phase_total=double(chi_total_obj.img);
+        
+    if B0_dir==1
+        %B0_dir=[1;0;0];
+        %put B0 in 3rd dimension
+        chi_mask=permute(chi_mask,[3,2,1]);
+        reliability_mask=permute(reliability_mask,[3,2,1]);
+        phase_total=permute(phase_total,[3,2,1]);
+    elseif B0_dir==2
+        %B0_dir=[0;1;0];
+        %put B0 in 3rd dimension
+        chi_mask=permute(chi_mask,[1,3,2]);
+        reliability_mask=permute(reliability_mask,[1,3,2]);
+        phase_total=permute(phase_total,[1,3,2]);
+    elseif B0_dir==3
+        %B0_dir=[0;0;1];
+    end
     
     aktmp=size(phase_total);  
     
@@ -78,6 +94,18 @@ if mod(aktmp(end),2)==0
     chi_ss_tv_ppb=chi_ss_tv_ppb(:,:,11:end); 
 else
     chi_ss_tv_ppb=chi_ss_tv_ppb(:,:,12:end);
+end
+
+if B0_dir==1
+    %B0_dir=[1;0;0];
+    %put B0 back in 1st dimension
+    chi_ss_tv_ppb=permute(chi_ss_tv_ppb,[3,2,1]);      
+elseif B0_dir==2
+    %B0_dir=[0;1;0];
+    %put B0 back in 2nd dimension
+    chi_ss_tv_ppb=permute(chi_ss_tv_ppb,[1,3,2]);
+elseif B0_dir==3
+    %B0_dir=[0;0;1];
 end
 
 tmp=make_nii(chi_ss_tv_ppb);

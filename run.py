@@ -66,11 +66,14 @@ if __name__ == "__main__":
                         default=15.0,
                         help="Size of local snr window, needed for weights in frequency fitting.")
     parser.add_argument("--truncate_echo", dest="truncate_echo",
-                        default=None,
+                        default=0,
                         help="How many echoes to include. Use -1 for all echoes")
     parser.add_argument("--SS_TV_lagrange_parameter", dest="SS_TV_lagrange_parameter",
                         default=0.35,
                         help="Dipole inversion lagrange parameter for TV")
+    parser.add_argument("--B0_dir", dest="B0_dir",
+                        default=3,
+                        help="Value can be 1,2, or 3 and specifies which dimension in your data corresponds to the B0 direction")
     parser.add_argument("--scnd_diff_reliability_thresh_trim", dest="scnd_diff_reliability_thresh_trim",
                         default=1000000.0,
                         help="second difference reliability threshold - used to trim fieldmap")
@@ -79,6 +82,13 @@ if __name__ == "__main__":
                         help="second difference reliability threshold - used to mask fieldmap's noisey voxels")
     
     args = parser.parse_args()
+    
+    #for testing
+    #BidsDir='/workspace/akuurstr/ali_khan'
+    #outDir='/workspace/akuurstr/ali_khan_results'     
+    #args = parser.parse_args([BidsDir, outDir,'--participant_label','C011','--mag_match_pattern','*part-mag_echo*',
+    #      '--phase_match_pattern','*part-phase_echo*','--SS_TV_lagrange_parameter','0.4','--truncate_echo','3',
+    #      '--keep_unnecessary_outputs','--B0_dir','1'])    
  
     bids_dir=args.bids_dir
     out_dir=args.output_dir
@@ -126,6 +136,7 @@ if __name__ == "__main__":
     freq_weights__snr_window_sz=float(args.freq_weights_snr__window_sz)
     truncate_echo=int(args.truncate_echo)
     SS_TV_lagrange_parameter=float(args.SS_TV_lagrange_parameter)
+    B0_dir=int(args.B0_dir)    
     scnd_diff_reliability_thresh_trim=float(args.scnd_diff_reliability_thresh_trim)
     scnd_diff_reliability_thresh_noise=float(args.scnd_diff_reliability_thresh_noise)
     
@@ -144,6 +155,7 @@ if __name__ == "__main__":
                                     freq_weights__snr_window_sz,
                                     truncate_echo,
                                     SS_TV_lagrange_parameter,
+                                    B0_dir,
                                     scnd_diff_reliability_thresh_trim,
                                     scnd_diff_reliability_thresh_noise
                                    )

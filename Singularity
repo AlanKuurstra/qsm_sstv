@@ -52,7 +52,7 @@ python3-pip
 #=============================================
 #python3 packages to run r2star script
 #=============================================
-pip3 install --upgrade pip
+pip3 install pip==9.0.1
 pip3 install numpy==1.13.3 scipy==1.0.0 nibabel==2.2.1
 #=============================================
 
@@ -61,7 +61,8 @@ pip3 install numpy==1.13.3 scipy==1.0.0 nibabel==2.2.1
 #=============================================
 echo "America/New_York" | sudo tee /etc/timezone && sudo dpkg-reconfigure --frontend noninteractive tzdata
 wget -O- http://neuro.debian.net/lists/trusty.de-md.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
+#sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
+apt-key adv --recv-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9
 sudo apt-get update
 sudo apt-get install -y fsl=5.0.9-4~nd14.04+1
 #=============================================
@@ -107,7 +108,7 @@ ln -s /code/pybids/bids /code/bids
 #install pyQSM for phase unwrapping and frequency estimation
 git clone https://github.com/AlanKuurstra/pyQSM.git /code/pyQSM
 cd /code/pyQSM
-git checkout 81cc35997b2cedb9b8ef9229e5e38a2602a8c483
+git checkout dfabc133085a4c06f9e4e5643686b7d711da576f
 cd /code/pyQSM/unwrap3dInterface
 python setup.py build
 python setup.py install --install-platlib ..

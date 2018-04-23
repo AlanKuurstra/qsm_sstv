@@ -21,7 +21,7 @@ from nipype.interfaces.utility import Function
 
 matlab_scripts_loc=os.path.dirname(os.path.realpath(__file__))+"/matlab_scripts"
 #mcr_location='/usr/local/MATLAB/R2016b/' #local testing
-#r2_script_location='/storage/akuurstr/singularity_testing/full/CalcR2Star.py' #local testing
+#r2_script_location=os.path.dirname(os.path.realpath(__file__))+'/CalcR2Star.py' #local testing
 mcr_location='/opt/mcr/v91'
 r2_script_location='/code/CalcR2Star.py'
 
@@ -358,7 +358,12 @@ class CalcR2Star_cmd(CommandLine):
     def _list_outputs(self):
         outputs = self.output_spec().get()
         outputs['R2star'] = os.path.abspath(self.inputs.R2star)
-        outputs['R2star_fit'] = os.path.abspath(os.path.splitext(self.inputs.R2star)[0]+'_fit'+os.path.splitext(self.inputs.R2star)[1])
+        #extension should start at leading dot instead of last dot
+        #use splitext in reverse
+        ext,name=os.path.splitext(self.inputs.R2star[::-1])
+        name=name[:0:-1]
+        ext='.'+ext[::-1]
+        outputs['R2star_fit'] = os.path.abspath(name+'_fit'+ext)
         outputs['neg_mask'] = os.path.abspath(self.inputs.neg_mask)
         outputs['nan_mask'] = os.path.abspath(self.inputs.nan_mask)
         return outputs 
@@ -454,7 +459,7 @@ def get_CF_from_json_fn(filename):
     if type(filename)==list:
         filename=filename[0]
     with open(filename) as f:
-        CF=json.load(f)['ImagingFrequency']*1e6       
+        CF=float(json.load(f)['ImagingFrequency'])*1e6       
     f.close()    
     return CF
 GetCFFromJson = Function(input_names=["filename"],
@@ -705,7 +710,7 @@ class EstimateFrequncyFromWrappedPhaseInputSpec(CommandLineInputSpec):
     json = InputMultiPath(File(exists=True), desc='A list of json files containing the tes',
                                  argstr="--phase %s", position=1,
                                  copyfile=False, mandatory=True)    
-    truncate_echo = traits.Int(-1,desc='Cut off echoes after this point',argstr='-truncate %s',
+    truncate_echo = traits.Int(0,desc='Cut off echoes after this point',argstr='-truncate %s',
                           position=3,mandatory=False,usedefault=True)    
     mask = File(desc = 'Mask (3D) where to estimate frequency', argstr="--mask %s",
                   position=4,mandatory=True)    
@@ -727,6 +732,8 @@ class EstimateFrequncyFromWrappedPhase(BaseInterface):
         phase_filename_list=self.inputs.phase
         json_filename_list=self.inputs.json
         truncate_echo=self.inputs.truncate_echo
+        if not truncate_echo:
+            truncate_echo=None
         mask_filename=self.inputs.mask       
         freq_filename=self._list_outputs()['freq_filename']       
                
@@ -982,11 +989,13 @@ class SS_TVInputSpec(CommandLineInputSpec):
     CF = traits.Float(298060000.0,desc='Center frequency, used to return result in ppb',argstr='%s',
                           position=4,mandatory=False,usedefault=True)
     alpha = traits.Float(0.3,desc='Regularization parameter for MEDI',argstr='%s',
-                          position=5,mandatory=False,usedefault=True)   
-    susceptibility_filename = File(desc="Output susceptibility filename",argstr='%s',position=6,               
+                          position=5,mandatory=False,usedefault=True)
+    B0_dir = traits.Int(3,desc='B0 direction (1, 2, or 3)',argstr='%s',
+                          position=6,mandatory=False,usedefault=True)
+    susceptibility_filename = File(desc="Output susceptibility filename",argstr='%s',position=7,               
                    mandatory=True)    
     quit_matlab = traits.String(';quit;"',desc='needed to quit matlab',argstr='%s',
-                      position=7,mandatory=False,usedefault=True)   
+                      position=8,mandatory=False,usedefault=True)   
     
 class SS_TVOutputSpec(TraitedSpec):    
     susceptibility_filename = File(desc="Susceptibility estimate",exists=True)
@@ -1010,6 +1019,17 @@ class SS_TV_mcr(CommandLine):
         outputs = self.output_spec().get()
         outputs['susceptibility_filename'] = os.path.abspath(self.inputs.susceptibility_filename)        
         return outputs        
+#==============================================================================
+
+#==============================================================================
+#useful for creating filenames from paths
+#==============================================================================
+def replace_slash_fn(filename):  
+        renamed="_".join(str(filename).split("/"))            
+        return renamed
+replace_slash = Function(input_names=["filename"],
+                             output_names=["renamed"],
+                             function=replace_slash_fn)
 #==============================================================================
   
     

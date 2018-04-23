@@ -164,14 +164,19 @@ if __name__ == '__main__':
     freq=nib.load(freq_filename).get_data()
     mask=nib.load(mask_filename).get_data()    
     data_reduced_phase=complex_img*np.exp(-1j*freq[...,np.newaxis]*te)     
-    R2star_img,goodness_of_fit,neg_mask,nan_mask=calc_R2star_fn(data_reduced_phase,mask,te)     
+    R2star_img,goodness_of_fit,neg_mask,nan_mask=calc_R2star_fn(data_reduced_phase,mask,te)    
     neg_mask=neg_mask.astype('int8')
     nan_mask=nan_mask.astype('int8')
     
     niftifile=nib.Nifti1Pair(R2star_img,mag_img_obj.affine)
     nib.save(niftifile,r2star_filename)
     niftifile=nib.Nifti1Pair(goodness_of_fit,mag_img_obj.affine)
-    nib.save(niftifile,os.path.splitext(r2star_filename)[0]+'_fit'+os.path.splitext(r2star_filename)[1])
+    #extension should start at leading dot instead of last dot
+    #use splitext in reverse
+    ext,name=os.path.splitext(r2star_filename[::-1])
+    name=name[:0:-1]
+    ext='.'+ext[::-1]    
+    nib.save(niftifile,name+'_fit'+ext)
     niftifile=nib.Nifti1Pair(neg_mask,mag_img_obj.affine)
     nib.save(niftifile,neg_mask_filename)
     niftifile=nib.Nifti1Pair(nan_mask,mag_img_obj.affine)
