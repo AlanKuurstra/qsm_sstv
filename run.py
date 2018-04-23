@@ -36,6 +36,10 @@ if __name__ == "__main__":
                         'sessions can be specified with a space separated list.',
                         default=['.*'],
                         nargs="+")
+    parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
+                        'Multiple participant level analyses can be run independently '
+                        '(in parallel) using the same output_dir.',
+                        choices=['participant', 'group'])
     parser.add_argument("-w", "--work_dir", dest="work_dir",
                         help="Work directory. Defaults to <output_dir>/scratch")
     parser.add_argument("-l", "--log_dir", dest="log_dir",
