@@ -16,12 +16,26 @@ if __name__ == "__main__":
                         'should be stored. If you are running group level analysis '
                         'this folder should be prepopulated with the results of the'
                         'participant level analysis.')
+    parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
+                        'Multiple participant level analyses can be run independently '
+                        '(in parallel) using the same output_dir.',
+                        choices=['participant'], nargs='?', default='participant')
     parser.add_argument('--mag_match_pattern', dest="mag_match_pattern",
                         default='*part-mag*',
-                        help='Pattern used to match magnitude images and json files in anat folder (leave extension out of pattern). The pattern may contain simple shell-style wildcards a la fnmatch. However, unlike fnmatch, filenames starting with a dot are special cases that are not matched by \'*\' and \'?\' patterns. Example usage: *part-mag*')  
+                        help='Pattern used to match magnitude images and json files '
+                        'in anat folder (leave extension out of pattern). The '
+                        'pattern may contain simple shell-style wildcards a la '
+                        'fnmatch. However, unlike fnmatch, filenames starting with '
+                        'a dot are special cases that are not matched by \'*\' and '
+                        '\'?\' patterns. Example usage: *part-mag*')  
     parser.add_argument('--phase_match_pattern', dest="phase_match_pattern",
                         default='*part-phase*',
-                        help='Pattern used to match phase images and json files in anat folder (leave extension out of pattern). The pattern may contain simple shell-style wildcards. However, filenames starting with a dot are special cases that are not matched by \'*\' and \'?\' patterns. Example usage: *part-phase*')  
+                        help='Pattern used to match phase images and json files '
+                        'in anat folder (leave extension out of pattern). The '
+                        'pattern may contain simple shell-style wildcards. '
+                        'However, filenames starting with a dot are special cases '
+                        'that are not matched by \'*\' and \'?\' patterns. '
+                        'Example usage: *part-phase*')  
     parser.add_argument('--participant_label', help='The label(s) of the participant(s) that should be analyzed. The label '
                         'corresponds to sub-<participant_label> from the BIDS spec '
                         '(so it does not include "sub-"). If this parameter is not '
@@ -35,11 +49,7 @@ if __name__ == "__main__":
                         'provided all sessions should be analyzed. Multiple '
                         'sessions can be specified with a space separated list.',
                         default=['.*'],
-                        nargs="+")
-    parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
-                        'Multiple participant level analyses can be run independently '
-                        '(in parallel) using the same output_dir.',
-                        choices=['participant', 'group'])
+                        nargs="+")    
     parser.add_argument("-w", "--work_dir", dest="work_dir",
                         help="Work directory. Defaults to <output_dir>/scratch")
     parser.add_argument("-l", "--log_dir", dest="log_dir",
@@ -77,13 +87,15 @@ if __name__ == "__main__":
                         help="Dipole inversion lagrange parameter for TV")
     parser.add_argument("--B0_dir", dest="B0_dir",
                         default=3,
-                        help="Value can be 1,2, or 3 and specifies which dimension in your data corresponds to the B0 direction")
+                        help="Value can be 1,2, or 3 and specifies which dimension '
+                        'in your data corresponds to the B0 direction")
     parser.add_argument("--scnd_diff_reliability_thresh_trim", dest="scnd_diff_reliability_thresh_trim",
                         default=1000000.0,
                         help="second difference reliability threshold - used to trim fieldmap")
     parser.add_argument("--scnd_diff_reliability_thresh_noise", dest="scnd_diff_reliability_thresh_noise",
                         default=1000000.0,
-                        help="second difference reliability threshold - used to mask fieldmap's noisey voxels")
+                        help="second difference reliability threshold - used to '
+                        'mask fieldmap's noisey voxels")
     
     args = parser.parse_args()
     
