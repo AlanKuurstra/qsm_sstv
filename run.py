@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('analysis_level', help='Level of the analysis that will be performed. '
                         'Multiple participant level analyses can be run independently '
                         '(in parallel) using the same output_dir.',
-                        choices=['participant'], nargs='?', default='participant')
+                        choices=['participant'])
     parser.add_argument('--mag_match_pattern', dest="mag_match_pattern",
                         default='*part-mag*',
                         help='Pattern used to match magnitude images and json files '
@@ -87,15 +87,15 @@ if __name__ == "__main__":
                         help="Dipole inversion lagrange parameter for TV")
     parser.add_argument("--B0_dir", dest="B0_dir",
                         default=3,
-                        help="Value can be 1,2, or 3 and specifies which dimension '
-                        'in your data corresponds to the B0 direction")
+                        help='Value can be 1,2, or 3 and specifies which dimension '
+                        'in your data corresponds to the B0 directio')
     parser.add_argument("--scnd_diff_reliability_thresh_trim", dest="scnd_diff_reliability_thresh_trim",
                         default=1000000.0,
                         help="second difference reliability threshold - used to trim fieldmap")
     parser.add_argument("--scnd_diff_reliability_thresh_noise", dest="scnd_diff_reliability_thresh_noise",
                         default=1000000.0,
-                        help="second difference reliability threshold - used to '
-                        'mask fieldmap's noisey voxels")
+                        help='second difference reliability threshold - used to '
+                        'mask fieldmap\'s noisey voxels')
     
     args = parser.parse_args()
     
