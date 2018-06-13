@@ -100,11 +100,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     #for testing
-    #BidsDir='/workspace/akuurstr/ali_khan'
+    #BidsDir='/home/akuurstr/Downloads/khan_qsm_grad_corrected'
     #outDir='/workspace/akuurstr/ali_khan_results'     
-    #args = parser.parse_args([BidsDir, outDir,'--participant_label','C011','--mag_match_pattern','*part-mag_echo*',
-    #      '--phase_match_pattern','*part-phase_echo*','--SS_TV_lagrange_parameter','0.4','--truncate_echo','3',
-    #      '--keep_unnecessary_outputs','--B0_dir','1'])    
+    #args = parser.parse_args([BidsDir, outDir,'participant','--participant_label','C001','--mag_match_pattern','*part-mag_echo*',
+    #      '--phase_match_pattern','*part-phase_echo*','--SS_TV_lagrange_parameter','0.4',
+    #      '--keep_unnecessary_outputs','--B0_dir','1'])
  
     bids_dir=args.bids_dir
     out_dir=args.output_dir

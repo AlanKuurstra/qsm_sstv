@@ -9,7 +9,8 @@ from scipy import ndimage
 import traits.api as traits
 import nibabel as nib
 import numpy as np
-import os,pyQSM.frequencyEstimate
+import os,sys
+import pyQSM.frequencyEstimate
 from nipype.interfaces.base import CommandLineInputSpec,BaseInterface,TraitedSpec,InputMultiPath,File,CommandLine,OutputMultiPath
 from nipype.interfaces.traits_extension import isdefined
 import pyQSM.calculateReliability as cr
@@ -307,6 +308,7 @@ class CalcR2Star(BaseInterface):
         json_filename_list=self.inputs.json        
                 
         R2star_filename=self._list_outputs()['R2star']
+        R2star_fit_filename=self._list_outputs()['R2star_fit']
         neg_mask_filename=self._list_outputs()['neg_mask']        
         nan_mask_filename=self._list_outputs()['nan_mask']        
         
@@ -327,14 +329,14 @@ class CalcR2Star(BaseInterface):
         #to avoid temporal wraps, we can remove the phase evolution of each echo
         #we retain the noise useful for the complex fit
         data_reduced_phase=complex_img*np.exp(-1j*freq[...,np.newaxis]*te) 
-        R2star_img,goodness_of_fit,neg_mask,nan_mask=calc_R2star_fn(data_reduced_phase,mask,te)
+        R2star_img,goodness_of_fit,neg_mask,nan_mask=calc_R2star_fn(data_reduced_phase,mask,te)        
         neg_mask=neg_mask.astype('int8')
         nan_mask=nan_mask.astype('int8')
         
         niftifile=nib.Nifti1Pair(R2star_img,mag_img_obj.affine)
         nib.save(niftifile,R2star_filename)
         niftifile=nib.Nifti1Pair(goodness_of_fit,mag_img_obj.affine)
-        nib.save(niftifile,os.path.splitext(R2star_filename)[0]+'_fit'+os.path.splitext(R2star_filename)[1])
+        nib.save(niftifile,R2star_fit_filename)
         niftifile=nib.Nifti1Pair(neg_mask,mag_img_obj.affine)
         nib.save(niftifile,neg_mask_filename)
         niftifile=nib.Nifti1Pair(nan_mask,mag_img_obj.affine)
@@ -345,7 +347,12 @@ class CalcR2Star(BaseInterface):
     def _list_outputs(self):
         outputs = self.output_spec().get()
         outputs['R2star'] = os.path.abspath(self.inputs.R2star)
-        outputs['R2star_fit'] = os.path.abspath(os.path.splitext(self.inputs.R2star)[0]+'_fit'+os.path.splitext(self.inputs.R2star)[1])
+        #extension should start at leading dot instead of last dot
+        #use splitext in reverse
+        ext,name=os.path.splitext(self.inputs.R2star[::-1])
+        name=name[:0:-1]
+        ext='.'+ext[::-1]
+        outputs['R2star_fit'] = os.path.abspath(name+'_fit'+ext)
         outputs['neg_mask'] = os.path.abspath(self.inputs.neg_mask)
         outputs['nan_mask'] = os.path.abspath(self.inputs.nan_mask)
         return outputs 
@@ -507,13 +514,14 @@ class GetAvgAndWeightsFromMag(BaseInterface):
         weight=np.empty(shape+(ne,))
         count=0
         mag_filename_list.sort()
+        eps = sys.float_info.min**(1.0/4)
         for imgloc in mag_filename_list:
             curr_img=(nib.load(imgloc).get_data()).astype('float')
             curr_img_avg=np.abs(curr_img).mean()            
             local_mean = ndimage.uniform_filter(curr_img, snr_window_sz_vxl)
             local_sqr_mean = ndimage.uniform_filter(curr_img**2, snr_window_sz_vxl)
-            local_var = local_sqr_mean - local_mean**2    
-            weight[...,count]=local_mean/local_var #snr
+            local_var = local_sqr_mean - local_mean**2 + eps
+            weight[...,count]=local_mean/local_var + eps#snr
             avg+=curr_img_avg*curr_img #weighted avg, later echos weighted less
             weight_avg+=curr_img_avg
             count+=1
@@ -758,7 +766,9 @@ class EstimateFrequncyFromWrappedPhase(BaseInterface):
             ph_img[...,count]=nib.load(imgloc).get_data()
             with open(jsonloc) as f:
                 te[count]=float(json.load(f)['EchoTime'])          
-            count+=1               
+            count+=1
+        eps = np.sqrt(sys.float_info.min)
+        ph_img = ph_img + eps                     
         mask=nib.load(mask_filename).get_data()
         freq=pyQSM.frequencyEstimate.estimateFrequencyFromWrappedPhase(ph_img,voxel_size,te,mask,weight,truncateEcho=truncate_echo)                
         niftifile=nib.Nifti1Pair(freq,ph_img_obj.affine)
