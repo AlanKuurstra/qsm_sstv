@@ -84,7 +84,7 @@ if __name__ == "__main__":
                         help="How many echoes to include. Use -1 for all echoes")
     parser.add_argument("--SS_TV_lagrange_parameter", dest="SS_TV_lagrange_parameter",
                         default=0.35,
-                        help="Dipole inversion lagrange parameter for TV")
+                        help="Dipole inversion lagrange parameter for TV (higher value is more smooth)")
     parser.add_argument("--B0_dir", dest="B0_dir",
                         default=3,
                         help='Value can be 1,2, or 3 and specifies which dimension '
@@ -92,10 +92,10 @@ if __name__ == "__main__":
     parser.add_argument("--scnd_diff_reliability_thresh_trim", dest="scnd_diff_reliability_thresh_trim",
                         default=1000000.0,
                         help="second difference reliability threshold - used to trim fieldmap")
-    parser.add_argument("--scnd_diff_reliability_thresh_noise", dest="scnd_diff_reliability_thresh_noise",
+    parser.add_argument("--scnd_diff_reliability_thresh_noise", dest="scnd_diff_reliability_thresh_noise (lower value trims more)",
                         default=1000000.0,
                         help='second difference reliability threshold - used to '
-                        'mask fieldmap\'s noisey voxels')
+                        'mask fieldmap\'s noisey voxels (lower value masks more)')
     
     args = parser.parse_args()
     
