@@ -1,0 +1,9 @@
+numpy==1.16.2
+
+# in pybids versions later than 0.6.5, multi-echo GRE files are not recognized as bids files
+# this should be updated once the bids standard and pybids can correctly handle multi-echo
+pybids==0.6.5
+
+# cfmm-nipype-interaces specifies nipype version in dependencies, therefore we do not specify it in this requirements
+git+https://gitlab.com/Kuurstra/cfmm-nipype-interfaces.git@v1.0.0
+

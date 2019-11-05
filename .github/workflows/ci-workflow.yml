@@ -1,0 +1,264 @@
+# watch to see if github expands the github context to provide a property similar to github.repository
+# but docker friendly
+# https://github.community/t5/GitHub-Actions/Feature-Request-context-property-similar-to-github-repository/m-p/38886#M3561
+
+name: Continuous Integration
+
+on: [push]
+
+env:
+  # github registry currently requires authentication, so we use it for caching the testing image, but not for release
+  # images.
+  REGISTRY: docker.pkg.github.com
+  TEST_IMAGE_BRANCH: ${{ github.repository }}/testing:${{ github.ref }}
+  # the following three variables are unused
+  TEST_IMAGE_LATEST: ${{ github.repository }}/testing:latest
+  BIDSAPP_IMAGE_LATEST: ${{ github.repository }}/bidsapp:latest
+  BIDSAPP_IMAGE_TAG:  ${{ github.repository }}/bidsapp:${{ github.ref }}
+  # use dockerhub for release images
+  TEST_IMAGE_LATEST_DOCKERHUB: akuurstr/qsm_sstv:testing
+  BIDSAPP_IMAGE_LATEST_DOCKERHUB: akuurstr/qsm_sstv:latest
+  BIDSAPP_IMAGE_TAG_DOCKERHUB: akuurstr/qsm_sstv:${{ github.ref }}
+
+jobs:
+  build:
+    name: update testing docker image if necessary
+    # jobs run in virtual environments, actions run in containers
+    # action containers are cached behind the scenes
+    # but since the ubuntu VM is able to execute actions in docker,
+    # it must have docker installed. So we can probably run our docker
+    # build in the VM shell and avoid the overhead of creating
+    # tailored actions in an action container.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: load cache
+        # note: docker image currently too large to save in cache?
+        uses: actions/cache@v1
+        with:
+          path: previous_docker_image
+          key: previous-docker-image
+
+      - name: reformat git-based container names for docker
+        shell: bash
+        run: |
+          # include registry, convert to all lower case, remove /refs/heads/ from branch name
+          # this is pretty simple and there are probably other repository and branch names that would break docker
+          # also note the format to make env variables global to other steps: echo::set-env name={name}:{value}
+          reformat(){
+            echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
+          }
+          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
+          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+
+      - name: login to github package registry
+        run: |
+          docker login $REGISTRY -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: load previous testing image from either cache or package registry
+        continue-on-error: true
+        shell: bash
+        run: |
+          if docker load -i previous_docker_image/prev_image.tar; then
+            echo "Loaded docker image from cache."
+          else
+            if docker pull ${TEST_IMAGE_BRANCH}; then
+              echo "Pulled ${TEST_IMAGE_BRANCH}"
+            else
+              #docker pull ${TEST_IMAGE_LATEST}
+              docker pull ${TEST_IMAGE_LATEST_DOCKERHUB}
+            fi
+          fi
+
+      - name: build testing image
+        run: |
+          docker build \
+          --cache-from ${TEST_IMAGE_LATEST} \
+          --cache-from ${TEST_IMAGE_BRANCH} \
+          -t ${TEST_IMAGE_BRANCH} \
+          -f Dockerfile_testing .
+          # export a docker image for caching
+          docker save ${TEST_IMAGE_BRANCH} -o previous_docker_image/prev_image.tar
+
+      - name: push testing image to github
+        run: |
+          docker push ${TEST_IMAGE_BRANCH}
+
+  tests:
+    name: test pipeline
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: load cache
+        # note: docker image currently too large to save in cache?
+        uses: actions/cache@v1
+        with:
+          path: previous_docker_image
+          key: previous-docker-image
+
+      - name: reformat git-based container names for docker
+        shell: bash
+        run: |
+          # include registry, convert to all lower case, remove /refs/heads/ from branch name
+          # this is pretty simple and there are probably other repository and branch names that would break docker
+          # also note the format to make env variables global to other steps: echo::set-env name={name}:{value}
+          reformat(){
+            echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
+          }
+          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
+          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+
+      - name: login to github package registry
+        run: |
+          docker login $REGISTRY -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: load previous testing image from either cache or package registry
+        shell: bash
+        run: |
+          if docker load -i previous_docker_image/prev_image.tar; then
+            echo "Loaded docker image from cache."
+          else
+            docker pull ${TEST_IMAGE_BRANCH}
+          fi
+
+      - name: run tests
+        shell: bash
+        run: |
+          docker run -v `pwd`:/code  ${TEST_IMAGE_BRANCH} /bin/bash -c \
+          "virtualenv venv;\
+          source venv/bin/activate;\
+          pip install -r /code/requirements.txt;\
+          export PYTHON_PATH=/code;\
+          python -m unittest discover /code/test"
+
+  release_tagged:
+    name: push version-tagged docker images
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: load cache
+        # note: docker image currently too large to save in cache?
+        uses: actions/cache@v1
+        with:
+          path: previous_docker_image
+          key: previous-docker-image
+
+      - name: reformat git-based container names for docker
+        shell: bash
+        run: |
+          reformat(){
+            echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
+          }
+          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
+          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+
+      - name: login to github package registry
+        run: |
+          docker login $REGISTRY -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: load previous testing image from either cache or package registry
+        shell: bash
+        run: |
+          if docker load -i previous_docker_image/prev_image.tar; then
+            echo "Loaded docker image from cache."
+          else
+            docker pull ${TEST_IMAGE_BRANCH}
+          fi
+
+      # checkout file: Dockerfile_bids_app
+      - uses: actions/checkout@master
+
+      - name: release tagged bids app image to dockerhub (because github registry requires authentication)
+        run: |
+          docker login  -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker tag ${TEST_IMAGE_BRANCH} ${TEST_IMAGE_LATEST_DOCKERHUB}
+          docker push ${TEST_IMAGE_LATEST_DOCKERHUB}
+          docker build \
+                    --cache-from ${TEST_IMAGE_BRANCH} \
+                    -t ${BIDSAPP_IMAGE_TAG_DOCKERHUB} \
+                    -f Dockerfile_bids_app .
+          docker push ${BIDSAPP_IMAGE_TAG_DOCKERHUB}
+
+  release_latest:
+    name: push latest docker images
+    if: github.ref == 'refs/heads/master'
+    needs: [build, tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: load cache
+        # note: docker image currently too large to save in cache?
+        uses: actions/cache@v1
+        with:
+          path: previous_docker_image
+          key: previous-docker-image
+
+      - name: reformat git-based container names for docker
+        shell: bash
+        run: |
+          reformat(){
+            echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
+          }
+          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
+          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
+          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+
+      - name: login to github package registry
+        run: |
+          docker login $REGISTRY -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
+
+      - name: load previous testing image from either cache or package registry
+        shell: bash
+        run: |
+          if docker load -i previous_docker_image/prev_image.tar; then
+            echo "Loaded docker image from cache."
+          else
+            docker pull ${TEST_IMAGE_BRANCH}
+          fi
+
+      - name: release testing image to github
+        shell: bash
+        if: 0
+        run: |
+          docker tag ${TEST_IMAGE_BRANCH} ${TEST_IMAGE_LATEST}
+          docker push ${TEST_IMAGE_LATEST}
+
+      - name: release testing image to dockerhub (because github registry requires authentication)
+        run: |
+          docker login  -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker tag ${TEST_IMAGE_BRANCH} ${TEST_IMAGE_LATEST_DOCKERHUB}
+          docker push ${TEST_IMAGE_LATEST_DOCKERHUB}
+
+      # checkout file: Dockerfile_bids_app
+      - uses: actions/checkout@master
+
+      - name: release bidsapp image to dockerhub (because github registry requires authentication)
+        run: |
+          docker login  -u ${{ secrets.DOCKERHUB_USER }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker build \
+                    --cache-from ${TEST_IMAGE_LATEST} \
+                    --cache-from ${TEST_IMAGE_LATEST_DOCKERHUB} \
+                    -t ${BIDSAPP_IMAGE_LATEST_DOCKERHUB} \
+                    -f Dockerfile_bids_app .
+          docker push ${BIDSAPP_IMAGE_LATEST_DOCKERHUB}
+

@@ -1,0 +1,24 @@
+FROM akuurstr/qsm_sstv:testing
+# github has not yet implemented open access to github packages (you must authenticate to access)
+# thus we'll want to store our bidsapp on dockerhub
+# consequently, we must store our test image on dockerhub so the bidsapp image can inherit from it
+# ie. the following won't work on dockerhub
+# FROM docker.pkg.github.com/alankuurstra/qsm_sstv/testing:latest
+
+COPY ./*.py /code/
+COPY requirements.txt /code/
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+#=============================================
+#install pipeline's python dependencies
+#=============================================
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install numpy==1.16.2 setuptools>=40.8.0
+RUN python3 -m pip install -r /code/requirements.txt
+#=============================================
+
+WORKDIR /code
+RUN chmod +x run.py
+ENTRYPOINT ["/code/run.py"]
+
