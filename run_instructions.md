@@ -42,7 +42,7 @@ singularity run -B tar:/input -B bids:/output khanlab-tar2bids-master-0.0.2d.sim
 
 6. Download QSM processing bids app:
 ```
-singularity pull shub://AlanKuurstra/qsm_sstv:v0.1.1
+singularity pull shub://AlanKuurstra/qsm_sstv:v0.2.0
 ```
 
 7. Create a QSM batch program that can be submitted as a job to graham: 
@@ -61,7 +61,7 @@ singularity pull shub://AlanKuurstra/qsm_sstv:v0.1.1
     
     export bids_input=<b>full path to bidsLocation (eg. /scratch/akuurstr/test/bids)</b>
     export output=<b>full path to where you want to store your qsm images (eg. /scratch/akuurstr/test/qsm)</b>
-    export SINGULARITY_DIR=<b>full path to qsm singularity image (eg. /scratch/akuurstr/test/AlanKuurstra-qsm_sstv-master-v0.1.1.simg)</b>
+    export SINGULARITY_DIR=<b>full path to qsm singularity image (eg. /scratch/akuurstr/test/AlanKuurstra-qsm_sstv-master-v0.2.0.simg)</b>
     
     export subjects=<b>subject list to process (eg. 068)</b>
     
@@ -103,7 +103,7 @@ Alternative: If your host OS is linux, you can install singularity without a vir
 2. Follow the above steps 2 - 6 on your local computer.  
 **Note: If using cfmm2tar in step 3, you must explicitly indicate a scratch folder instead of using the environment variable $SCRATCH**
 3. Instead of steps 7 - 9, run:  
-singularity run -B **bidsLocation**:/input -B **qsmLocation**:/output AlanKuurstra-qsm_sstv-master-v0.1.1.simg /input /output participant --participant_label **subjectID** --SS_TV_lagrange_parameter 0.4 --keep_unnecessary_outputs  
+singularity run -B **bidsLocation**:/input -B **qsmLocation**:/output AlanKuurstra-qsm_sstv-master-v0.2.0.simg /input /output participant --participant_label **subjectID** --SS_TV_lagrange_parameter 0.4 --keep_unnecessary_outputs  
 eg.
 
     ```
