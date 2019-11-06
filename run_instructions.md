@@ -107,7 +107,7 @@ singularity run -B **bidsLocation**:/input -B **qsmLocation**:/output AlanKuurst
 eg.
 
     ```
-    singularity run -B bids:/input -B qsm:/output AlanKuurstra-qsm_sstv-master-v0.1.1.simg /input /output participant --participant_label 068 --SS_TV_lagrange_parameter 0.4 --keep_unnecessary_outputs
+    singularity run -B bids:/input -B qsm:/output AlanKuurstra-qsm_sstv-master-v0.2.0.simg /input /output participant --participant_label 068 --SS_TV_lagrange_parameter 0.4 --keep_unnecessary_outputs
     ```
 
 ### Note that the QSM pipeline can be resource intensive and will fail if it runs out of memory. In this case it is best to use compute canada.
