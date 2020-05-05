@@ -17,7 +17,7 @@ Note: due to nature of the dipole inversion problem, susceptibility images have 
 **filename-QSM_brainMask**  
 Where the algorithm believes the brain edge is.  
 **filename-QSM_noiseMask**  
-Voxels that were excluded from the data due to large variance. Usually these are voxels where the phase could not properly be unwrapped, for example near high susceptibility structures like vessels.  
+Voxels that were excluded from the data due to large variance. Usually these are voxels where the phase could not properly be unwrapped, for example near high susceptibility structures like vessels. To reduce the number of voxels masked, increase the value of the input ```scnd_diff_reliability_thresh_noise```.
 **filename-R2star**  
 The estimated R2star in units Hz from fitting to the complex data.  
 **filename-R2star_fit**  
