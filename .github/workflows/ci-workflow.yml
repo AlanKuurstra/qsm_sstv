@@ -55,11 +55,11 @@ jobs:
           reformat(){
             echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
           }
-          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
-          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+          echo "TEST_IMAGE_BRANCH=$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})" >> "$GITHUB_ENV"
+          echo "TEST_IMAGE_LATEST=$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_LATEST=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG_DOCKERHUB=$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})" >> "$GITHUB_ENV"
 
       - name: login to github package registry
         run: |
@@ -72,6 +72,7 @@ jobs:
           if docker load -i previous_docker_image/prev_image.tar; then
             echo "Loaded docker image from cache."
           else
+            mkdir previous_docker_image
             if docker pull ${TEST_IMAGE_BRANCH}; then
               echo "Pulled ${TEST_IMAGE_BRANCH}"
             else
@@ -116,12 +117,12 @@ jobs:
           # also note the format to make env variables global to other steps: echo::set-env name={name}:{value}
           reformat(){
             echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
-          }
-          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
-          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+          }          
+          echo "TEST_IMAGE_BRANCH=$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})" >> "$GITHUB_ENV"
+          echo "TEST_IMAGE_LATEST=$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_LATEST=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG_DOCKERHUB=$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})" >> "$GITHUB_ENV"
 
       - name: login to github package registry
         run: |
@@ -165,11 +166,11 @@ jobs:
           reformat(){
             echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
           }
-          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
-          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+          echo "TEST_IMAGE_BRANCH=$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})" >> "$GITHUB_ENV"
+          echo "TEST_IMAGE_LATEST=$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_LATEST=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG_DOCKERHUB=$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})" >> "$GITHUB_ENV"
 
       - name: login to github package registry
         run: |
@@ -217,11 +218,11 @@ jobs:
           reformat(){
             echo "$1" | tr '[:upper:]' '[:lower:]' | sed -e "s/refs\/heads\///g" | sed -e "s/refs\/tags\///g"
           }
-          echo ::set-env name=TEST_IMAGE_BRANCH::$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})
-          echo ::set-env name=TEST_IMAGE_LATEST::$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_LATEST::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG::$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})
-          echo ::set-env name=BIDSAPP_IMAGE_TAG_DOCKERHUB::$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})
+          echo "TEST_IMAGE_BRANCH=$(reformat ${REGISTRY}/${TEST_IMAGE_BRANCH})" >> "$GITHUB_ENV"
+          echo "TEST_IMAGE_LATEST=$(reformat ${REGISTRY}/${TEST_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_LATEST=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_LATEST})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG=$(reformat ${REGISTRY}/${BIDSAPP_IMAGE_TAG})" >> "$GITHUB_ENV"
+          echo "BIDSAPP_IMAGE_TAG_DOCKERHUB=$(reformat ${BIDSAPP_IMAGE_TAG_DOCKERHUB})" >> "$GITHUB_ENV"
 
       - name: login to github package registry
         run: |
