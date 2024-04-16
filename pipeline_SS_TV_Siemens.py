@@ -73,14 +73,14 @@ def create_pipeline_SS_TV(bids_dir,
         if layout.get_sessions(subject=subject) == []:
             if sessions == ['.*']:
                 first_echo_files = first_echo_files + layout.get(subject=subject, modality='anat',
-                                                                 extensions='.*part-phase.*echo-0*1.*.nii.*', )
+                                                                 extensions='^(?=.*_part-phase_)(?=.*echo-0*1).*.nii.*', )
             else:
                 print(
                     "Warning: Session filter applied, but subject " + subject + " has no bids session information. This subject has been ignored.")
         else:
             for session in sessions:
                 first_echo_files = first_echo_files + layout.get(subject=subject, session=session, modality='anat',
-                                                                 extensions='.*part-phase.*echo-0*1.*.nii.*', )
+                                                                 extensions='^(?=.*_part-phase_)(?=.*echo-0*1).*.nii.*', )
     anat_folders = []
     for img in first_echo_files:
         full_dirname = os.path.dirname(img.filename)
