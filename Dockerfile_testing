@@ -11,11 +11,10 @@ RUN pip install virtualenv
 #install fsl
 #=============================================
 RUN echo "America/New_York" | sudo tee /etc/timezone && sudo dpkg-reconfigure --frontend noninteractive tzdata
-RUN wget -O- http://neuro.debian.net/lists/trusty.de-md.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
-#sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
-RUN apt-key adv --recv-keys --keyserver hkp://ha.pool.sks-keyservers.net 0xA5D32F012649A5A9
+RUN wget -O- http://neuro.debian.net/lists/xenial.cn-bj1.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xA5D32F012649A5A9
 RUN sudo apt-get update
-RUN sudo apt-get install -y fsl=5.0.9-5~nd14.04+1
+RUN sudo apt-get install -y fsl=5.0.9-5~nd16.04+1
 #=============================================
 
 #fsl
