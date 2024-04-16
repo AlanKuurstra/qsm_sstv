@@ -5,5 +5,5 @@ numpy==1.16.2
 pybids==0.6.5
 
 # cfmm-nipype-interaces specifies nipype version in dependencies, therefore we do not specify it in this requirements
-git+https://gitlab.com/Kuurstra/cfmm-nipype-interfaces.git@v1.0.0
+git+https://gitlab.com/Kuurstra/cfmm-nipype-interfaces.git@v1.0.1
 
